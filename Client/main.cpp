@@ -11,11 +11,26 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define PORT 8080 
+#define MSG_LEN 250
 
-int main () {
+int main (int argc, char* argv[]) {
+
+    if (argc != 3){
+        printf ("Usage: ./client <IP> <PORT> \n");
+        printf ("  You must specify the ip and the port of the server \n");
+        printf ("  Ex: /client 127.0.0.1 8080 \n");
+        return -1;
+    }
 
     sockaddr_in servaddr, cli;
+
+    char ip[16];
+    strcpy (ip, argv[1]);
+    int port = atoi (argv[2]);
+    char user[20];
+
+    printf ("Please input your username: ");
+    scanf ("%s", user);
 
     printf ("Client started :) \n");
     printf ("Opening the socket... \n");
@@ -29,38 +44,41 @@ int main () {
   
     // assign IP, PORT 
     servaddr.sin_family = AF_INET; 
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
-    servaddr.sin_port = htons(PORT); 
+    servaddr.sin_addr.s_addr = inet_addr(ip); 
+    servaddr.sin_port = htons(port); 
 
-    printf ("Connecting to 127.0.0.1:8080... \n");
+    printf ("Connecting to %s: %d... \n", ip, port);
     if ((connect(sockfd, (sockaddr*)&servaddr, sizeof(servaddr))) != 0) { 
         printf("Connection failed...\n"); 
         return 2; 
     } 
-
     printf ("Connected to server \n");
 
-    char buffer[250];
+    char buffer[MSG_LEN];
     int bytesRead;
+    char msg[MSG_LEN - 20];
     while (true) {
 
-        bzero(buffer, 250);
+        bzero(buffer, MSG_LEN);
+        bzero(msg, MSG_LEN - 20);
         int n = 0;
-        printf ("Message: ");
-        while ((buffer[n++] = getchar()) != '\n') {
+        printf ("[%s]: ", user);
+        while ((msg[n++] = getchar()) != '\n') {
             // do nothing
         } 
+        sprintf (buffer, "[%s]: ", user);
+        strcat (buffer, msg);
         if (send (sockfd, buffer, strlen(buffer), 0) == -1) 
             printf ("Error sending message \n");
 
-        bzero(buffer, 250); 
-        bytesRead = recv (sockfd, buffer, 250, 0);
+        bzero(buffer, MSG_LEN); 
+        bytesRead = recv (sockfd, buffer, MSG_LEN, 0);
         if (bytesRead > 0) {
-            printf ("Server answer (%d bytes) : %s \n", bytesRead, buffer);
+            printf ("%s", buffer);
         }
 
 
-        if (strstr (buffer, "exit"))
+        if (strstr (buffer, "quit"))
             break;
     }
 

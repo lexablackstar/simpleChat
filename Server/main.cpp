@@ -11,11 +11,23 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define PORT 8080 
+#define MSG_LEN 250
 
-int main () {
+int main (int argc, char* argv[]) {
+
+    if (argc != 2){
+        printf ("Usage: ./server <PORT> \n");
+        printf ("  You must specify the port for listening \n");
+        printf ("  Ex: /server 8080 \n");
+        return -1;
+    }
 
     sockaddr_in servaddr, cli;
+    int port = atoi (argv[1]);
+    char user[20];
+
+    printf ("Please input your username: ");
+    scanf ("%s", user);
 
     printf ("Opening the socket... \n");
     int sockfd = socket( AF_INET, SOCK_STREAM, 0);
@@ -29,15 +41,15 @@ int main () {
     // assign IP, PORT 
     servaddr.sin_family = AF_INET; 
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    servaddr.sin_port = htons(PORT); 
+    servaddr.sin_port = htons(port); 
 
-    printf ("Binding on port 8080... \n");
+    printf ("Binding... \n");
     if ((bind(sockfd, (sockaddr*)&servaddr, sizeof(servaddr))) != 0) { 
         printf("socket bind failed...\n"); 
         return 2; 
     } 
 
-    printf ("Listening... \n");
+    printf ("Listening on port %d... \n", port);
     if ((listen(sockfd, 5)) != 0) { 
         printf("Listen failed...\n"); 
         return 3; 
@@ -49,26 +61,30 @@ int main () {
         printf("server acccept failed...\n"); 
         return 4; 
     } 
-    printf ("Connected: Socket %d \n", connfd);
+    printf ("Connected: Client %d \n", connfd);
 
-    char buffer[250];
+    char buffer[MSG_LEN];
+    char msg[MSG_LEN - 20];
     int bytesRead;
     while (true) {
-        bzero(buffer, 250); 
-        bytesRead = recv (connfd, buffer, 250, 0);
+        bzero(buffer, MSG_LEN); 
+        bytesRead = recv (connfd, buffer, MSG_LEN, 0);
         if (bytesRead > 0) {
-            printf ("Socket %d (%d bytes) : %s \n", connfd, bytesRead, buffer);
+            printf ("%s", buffer);
         }
-        bzero(buffer, 250);
+        bzero(buffer, MSG_LEN);
+        bzero(msg, MSG_LEN - 20);
         int n = 0;
-        printf ("Your answer: ");
-        while ((buffer[n++] = getchar()) != '\n') {
+        printf ("[%s]: ", user);
+        while ((msg[n++] = getchar()) != '\n') {
             // do nothing
         } 
+        sprintf (buffer, "[%s]: ", user);
+        strcat (buffer, msg);
         if (send (connfd, buffer, strlen(buffer), 0) == -1) 
             printf ("Error sending answer \n");
         
-        if (strstr (buffer, "exit"))
+        if (strstr (buffer, "quit"))
             break;
     }
 
