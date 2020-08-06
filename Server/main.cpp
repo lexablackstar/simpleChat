@@ -79,6 +79,7 @@ int main (int argc, char* argv[]) {
         while ((msg[n++] = getchar()) != '\n') {
             // do nothing
         } 
+ 
         sprintf (buffer, "[%s]: ", user);
         strcat (buffer, msg);
         if (send (connfd, buffer, strlen(buffer), 0) == -1) 
